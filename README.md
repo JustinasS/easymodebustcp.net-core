@@ -1,3 +1,7 @@
+## EasyModeBusTCP.NET Core 3.0
+Added support for .NET Core 3.0<br>
+See original package & information below<br>
+
 # EasyModbusTCP.NET - <a href="EasyModbusTCP.NET">www.EasyModbusTCP.NET</a>
 
 Modbus TCP, Modbus UDP and Modbus RTU client/server library for .NET<br>
