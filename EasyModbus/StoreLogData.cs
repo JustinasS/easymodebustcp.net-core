@@ -72,7 +72,7 @@ namespace EasyModbus
                     file.WriteLine(timestamp.ToString("dd.MM.yyyy H:mm:ss.ff ") + message);
                 }
             }
-            catch (Exception e)
+            catch
             {
 
             }

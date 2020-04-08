@@ -1,14 +1,6 @@
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System;
-using System.Net.Sockets;
-using System.Net;
-using System.IO.Ports;
-using System.Reflection;
-namespace ConsoleApplication1
+﻿using System;
+
+namespace ClientApplicationCore
 {
     class Program
     {
@@ -34,7 +26,7 @@ namespace ConsoleApplication1
                       for (int i = 0; i < 15; i++)
                       Console.WriteLine(bufferout[i].ToString());
                       serialport.Write("ddddddddd");*/
-            EasyModbus.ModbusClient modbusClient = new EasyModbus.ModbusClient("COM3");
+            EasyModbusCore.ModbusClient modbusClient = new EasyModbusCore.ModbusClient("COM3");
             modbusClient.Baudrate = 19200;
             //modbusClient.SerialPort = "COM3";
             //EasyModbus.ModbusClient modbusClient = new EasyModbus.ModbusClient("127.0.0.1", 502);
@@ -63,7 +55,7 @@ namespace ConsoleApplication1
                 DateTime datetimeStart = DateTime.Now;
                 for (int i = 1; i < 125; i++)
                 {
-                    modbusClient.WriteSingleRegister(i,i);
+                    modbusClient.WriteSingleRegister(i, i);
                     Console.WriteLine(modbusClient.ReadInputRegisters(i, 125)[0]);
                 }
                 DateTime datetimeEnd = DateTime.Now;
@@ -72,9 +64,6 @@ namespace ConsoleApplication1
 
                 // System.Threading.Thread.Sleep(1000);
             }
-            modbusClient.Disconnect();
-            Console.ReadKey();
         }
     }
 }
-                                                                                                                                                                                                                    

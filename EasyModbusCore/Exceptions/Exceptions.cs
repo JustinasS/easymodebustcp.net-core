@@ -7,7 +7,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace EasyModbus.Exceptions
+namespace EasyModbusCore.Exceptions
 {
 	/// <summary>
 	/// Exception to be thrown if serial port is not opened

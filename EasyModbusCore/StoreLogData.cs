@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace EasyModbus
+namespace EasyModbusCore
 {
     /// <summary>
     /// Store Log-Data in a File
@@ -72,7 +72,7 @@ namespace EasyModbus
                     file.WriteLine(timestamp.ToString("dd.MM.yyyy H:mm:ss.ff ") + message);
                 }
             }
-            catch (Exception e)
+            catch
             {
 
             }

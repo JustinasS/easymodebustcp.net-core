@@ -712,8 +712,6 @@ namespace EasyModbus
         private bool receiveActive = false;
         private byte[] readBuffer = new byte[256];
         private int bytesToRead = 0;
-        private int akjjjctualPositionToRead = 0;
-        DateTime dateTimeLastRead;
 /*
         private void DataReceivedHandler(object sender,
                         SerialDataReceivedEventArgs e)

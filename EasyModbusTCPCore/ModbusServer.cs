@@ -46,16 +46,19 @@ namespace EasyModbus
 #endregion
 
 #region structs
+
     struct NetworkConnectionParameter
     {
+        #pragma warning disable 0649
         public NetworkStream stream;        //For TCP-Connection only
         public Byte[] bytes;
         public int portIn;                  //For UDP-Connection only
         public IPAddress ipAddressIn;       //For UDP-Connection only
+        #pragma warning restore 0649
     }
-#endregion
+    #endregion
 
-#region TCPHandler class
+    #region TCPHandler class
     internal class TCPHandler
     {
         public delegate void DataChanged(object networkConnectionParameter);
@@ -127,7 +130,6 @@ namespace EasyModbus
         {
             lock (this)
             {
-                int i = 0;
                 bool objetExists = false;
                 foreach (Client clientLoop in tcpClientLastRequestList)
                 {
@@ -224,7 +226,6 @@ namespace EasyModbus
     {
         private bool debug = false;
         Int32 port = 502;
-        ModbusProtocol receiveData;
         ModbusProtocol sendData =  new ModbusProtocol();
         Byte[] bytes = new Byte[2100];
         //public Int16[] _holdingRegisters = new Int16[65535];
@@ -234,13 +235,8 @@ namespace EasyModbus
         public DiscreteInputs discreteInputs;
         private int numberOfConnections = 0;
         private byte unitIdentifier = 1;
-        private int portIn;
-        private IPAddress ipAddressIn;
-        private UdpClient udpClient;
-        private IPEndPoint iPEndPoint;
         private TCPHandler tcpHandler;
         Thread listenerThread;
-        Thread clientConnectionThread;
         private ModbusProtocol[] modbusLogData = new ModbusProtocol[100];
         public bool FunctionCode1Disabled {get; set;}
         public bool FunctionCode2Disabled { get; set; }
@@ -254,7 +250,6 @@ namespace EasyModbus
         public bool PortChanged { get; set; }
         object lockCoils = new object();
         object lockHoldingRegisters = new object();
-        private volatile bool shouldStop;
         
 
 
@@ -482,7 +477,7 @@ namespace EasyModbus
                         }
                     }
                 }
-                catch (Exception exc)
+                catch
                 { }
                 this.CreateAnswer(receiveDataThread, sendDataThread, stream, portIn, ipAddressIn);
                 //this.sendAnswer();

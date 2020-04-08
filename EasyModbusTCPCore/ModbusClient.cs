@@ -32,13 +32,11 @@ namespace EasyModbus
 		private byte functionCode;
 		private byte [] startingAddress = new byte[2];
 		private byte [] quantity = new byte[2];
-        private int portOut;
         private int connectTimeout = 1000;
         public byte[] receiveData;
         public byte[] sendData; 
         private bool connected = false;
         public int NumberOfRetries { get; set; } = 3;
-        private int countRetries = 0;
 
         public delegate void ReceiveDataChanged(object sender);
         public event ReceiveDataChanged receiveDataChanged;
@@ -601,12 +599,7 @@ namespace EasyModbus
             return (UInt16)((UInt16)uchCRCHi << 8 | uchCRCLo);           
         }
 
-        private bool dataReceived = false;
-        private bool receiveActive = false;
         private byte[] readBuffer = new byte[256];
-        private int bytesToRead = 0;
-        private int actualPositionToRead = 0;
-        DateTime dateTimeLastRead;
 /*
         private void DataReceivedHandler(object sender,
                         SerialDataReceivedEventArgs e)

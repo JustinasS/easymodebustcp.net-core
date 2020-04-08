@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace EasyModbus
+namespace EasyModbusCore
 {
     public partial class ModbusClient
     {

@@ -61,7 +61,7 @@ namespace EasyModbus
             {
 
             }
-            catch (Exception e)
+            catch
             {
 
             }

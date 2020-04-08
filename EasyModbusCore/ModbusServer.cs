@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2017 Stefan Roßmann.
+ * Copyright (c) 2018 Stefan Roßmann.
  * 
  * This program is free software: you can redistribute it and/or modify  
  * it under the terms of the GNU General Public License as published by  
@@ -24,7 +24,7 @@ using System.Threading;
 using System.Net.NetworkInformation;
 using System.IO.Ports;
 
-namespace EasyModbus
+namespace EasyModbusCore
 {
 #region class ModbusProtocol
     /// <summary>
@@ -138,7 +138,6 @@ namespace EasyModbus
         {
             lock (this)
             {
-                int i = 0;
                 bool objetExists = false;
                 foreach (Client clientLoop in tcpClientLastRequestList)
                 {
@@ -181,7 +180,7 @@ namespace EasyModbus
 
                     read = networkStream.EndRead(asyncResult);
                 }
-                catch (Exception ex)
+                catch
                 {
                     return;
                 }
@@ -266,7 +265,6 @@ namespace EasyModbus
     {
         private bool debug = false;
         Int32 port = 502;
-        ModbusProtocol receiveData;
         ModbusProtocol sendData =  new ModbusProtocol();
         Byte[] bytes = new Byte[2100];
         //public Int16[] _holdingRegisters = new Int16[65535];
@@ -289,7 +287,6 @@ namespace EasyModbus
         private IPEndPoint iPEndPoint;
         private TCPHandler tcpHandler;
         Thread listenerThread;
-        Thread clientConnectionThread;
         private ModbusProtocol[] modbusLogData = new ModbusProtocol[100];
         public bool FunctionCode1Disabled {get; set;}
         public bool FunctionCode2Disabled { get; set; }
@@ -303,36 +300,31 @@ namespace EasyModbus
         public bool PortChanged { get; set; }
         object lockCoils = new object();
         object lockHoldingRegisters = new object();
-        internal object lockMQTT = new object();
         private volatile bool shouldStop;
         
-        internal EasyModbus2Mqtt easyModbus2Mqtt = new EasyModbus2Mqtt();
 
 
         public ModbusServer()
         {
-            easyModbus2Mqtt.MqttRootTopic = "easymodbusserver";
-            easyModbus2Mqtt.RetainMessages = true;
             holdingRegisters = new HoldingRegisters(this);
             inputRegisters = new InputRegisters(this);
             coils = new Coils(this);
             discreteInputs = new DiscreteInputs(this);
-            easyModbus2Mqtt.MqttBrokerAddress = null;
 
         }
 
         #region events
-        public delegate void CoilsChanged(int coil, int numberOfCoils);
-        public event CoilsChanged coilsChanged;
+        public delegate void CoilsChangedHandler(int coil, int numberOfCoils);
+        public event CoilsChangedHandler CoilsChanged;
 
-        public delegate void HoldingRegistersChanged(int register, int numberOfRegisters);
-        public event HoldingRegistersChanged holdingRegistersChanged;
+        public delegate void HoldingRegistersChangedHandler(int register, int numberOfRegisters);
+        public event HoldingRegistersChangedHandler HoldingRegistersChanged;
 
-        public delegate void NumberOfConnectedClientsChanged();
-        public event NumberOfConnectedClientsChanged numberOfConnectedClientsChanged;
+        public delegate void NumberOfConnectedClientsChangedHandler();
+        public event NumberOfConnectedClientsChangedHandler NumberOfConnectedClientsChanged;
 
-        public delegate void LogDataChanged();
-        public event LogDataChanged logDataChanged;
+        public delegate void LogDataChangedHandler();
+        public event LogDataChangedHandler LogDataChanged;
         #endregion
 
         public void Listen()
@@ -360,8 +352,6 @@ namespace EasyModbus
             listenerThread.Join();
             try
             {
-
-                clientConnectionThread.Abort();
             }
             catch (Exception) { }
         }
@@ -436,7 +426,6 @@ namespace EasyModbus
         }
     
 		#region SerialHandler
-        private bool dataReceived = false;
         private byte[] readBuffer = new byte[2094];
         private DateTime lastReceive;
         private int nextSign = 0;
@@ -461,19 +450,14 @@ namespace EasyModbus
             if (ModbusClient.DetectValidModbusFrame(readBuffer, nextSign))
             {
                 
-                dataReceived = true;
                 nextSign= 0;
 
                     NetworkConnectionParameter networkConnectionParameter = new NetworkConnectionParameter();
                     networkConnectionParameter.bytes = readBuffer;
                     ParameterizedThreadStart pts = new ParameterizedThreadStart(this.ProcessReceivedData);
                     Thread processDataThread = new Thread(pts);
-                    processDataThread.Start(networkConnectionParameter);
-                    dataReceived = false;
-                
+                    processDataThread.Start(networkConnectionParameter);                
             }
-            else
-                dataReceived = false;
         }
 		#endregion
  
@@ -481,8 +465,8 @@ namespace EasyModbus
         private void numberOfClientsChanged()
         {
             numberOfConnections = tcpHandler.NumberOfConnectedClients;
-            if (numberOfConnectedClientsChanged != null)
-                numberOfConnectedClientsChanged();
+            if (NumberOfConnectedClientsChanged != null)
+                NumberOfConnectedClientsChanged();
         }
         #endregion
 
@@ -640,14 +624,14 @@ namespace EasyModbus
                         }
                     }
                 }
-                catch (Exception exc)
+                catch
                 { }
                 this.CreateAnswer(receiveDataThread, sendDataThread, stream, portIn, ipAddressIn);
                 //this.sendAnswer();
                 this.CreateLogData(receiveDataThread, sendDataThread);
 
-                if (logDataChanged != null)
-                    logDataChanged();
+                if (LogDataChanged != null)
+                    LogDataChanged();
             }
         }
         #endregion
@@ -871,7 +855,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -998,7 +982,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -1114,7 +1098,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -1230,7 +1214,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -1357,7 +1341,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -1386,8 +1370,8 @@ namespace EasyModbus
                     }
                 }
                 catch (Exception) { }
-                if (coilsChanged != null)
-                    coilsChanged(receiveData.startingAdress+1, 1);
+                if (CoilsChanged != null)
+                    CoilsChanged(receiveData.startingAdress+1, 1);
             }
         }
 
@@ -1480,7 +1464,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -1509,8 +1493,8 @@ namespace EasyModbus
                     }
                 }
                 catch (Exception) { }
-                if (holdingRegistersChanged != null)
-                    holdingRegistersChanged(receiveData.startingAdress+1, 1);
+                if (HoldingRegistersChanged != null)
+                    HoldingRegistersChanged(receiveData.startingAdress+1, 1);
             }
         }
 
@@ -1620,7 +1604,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -1649,8 +1633,8 @@ namespace EasyModbus
                     }
                 }
                 catch (Exception) { }
-                if (coilsChanged != null)
-                    coilsChanged(receiveData.startingAdress+1, receiveData.quantity);
+                if (CoilsChanged != null)
+                    CoilsChanged(receiveData.startingAdress+1, receiveData.quantity);
             }
         }
 
@@ -1744,7 +1728,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -1773,8 +1757,8 @@ namespace EasyModbus
                     }
                     }
                 catch (Exception) { }
-                if (holdingRegistersChanged != null)
-                    holdingRegistersChanged(receiveData.startingAdress+1, receiveData.quantity);
+                if (HoldingRegistersChanged != null)
+                    HoldingRegistersChanged(receiveData.startingAdress+1, receiveData.quantity);
             }
         }
 
@@ -1875,7 +1859,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -1904,8 +1888,8 @@ namespace EasyModbus
                     }
                 }
                 catch (Exception) { }
-                if (holdingRegistersChanged != null)
-                    holdingRegistersChanged(receiveData.startingAddressWrite+1, receiveData.quantityWrite);
+                if (HoldingRegistersChanged != null)
+                    HoldingRegistersChanged(receiveData.startingAddressWrite+1, receiveData.quantityWrite);
             }
         }
 
@@ -1963,7 +1947,7 @@ namespace EasyModbus
                     if (serialFlag)
                     {
                         if (!serialport.IsOpen)
-                            throw new EasyModbus.Exceptions.SerialPortNotOpenedException("serial port not opened");
+                            throw new EasyModbusCore.Exceptions.SerialPortNotOpenedException("serial port not opened");
                         //Create CRC
                         sendData.crc = ModbusClient.calculateCRC(data, Convert.ToUInt16(data.Length - 8), 6);
                         byteData = BitConverter.GetBytes((int)sendData.crc);
@@ -2006,12 +1990,6 @@ namespace EasyModbus
 
         }
 
-        public void DeleteRetainedMessages(string topic)
-        {
-            if (MqttBrokerAddress != null)
-                easyModbus2Mqtt.publish(topic, null, MqttBrokerAddress);
-
-        }
 
 
         public int NumberOfConnections
@@ -2154,108 +2132,15 @@ namespace EasyModbus
             }
         }
 
-        /// <summary>
-        /// Gets or Sets the Mqtt Broker Address
-        /// </summary>
-        public string MqttBrokerAddress
-        {
-            get
-            {
-                return easyModbus2Mqtt.MqttBrokerAddress;
-            }
-            set
-            {
-                easyModbus2Mqtt.MqttBrokerAddress = value;
 
-               
-                
-            }
-        }
 
-        /// <summary>
-        /// Gets or Sets the Mqtt Root Topic - Standard is "easymodbusserver"
-        /// </summary>
-        public string MqttRootTopic
-        {
-            get
-            {
-                return easyModbus2Mqtt.MqttRootTopic;
-            }
-            set
-            {
-                easyModbus2Mqtt.MqttRootTopic = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or Sets the Username for the MQTT-Broker (if nessesary) default is "null"
-        /// </summary>
-        public string MqttUserName
-        {
-            get
-            {
-                return easyModbus2Mqtt.MqttUserName;
-            }
-            set
-            {
-                easyModbus2Mqtt.MqttUserName = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or Sets the Password for the MQTT-Broker (if nessesary) default is "null"
-        /// </summary>
-        public string MqttPassword
-        {
-            get
-            {
-                return easyModbus2Mqtt.MqttPassword;
-            }
-            set
-            {
-                easyModbus2Mqtt.MqttPassword = value;
-            }
-        }
-
-        /// <summary>
-        /// Disables or Enables to Retain the Messages in the Broker - default is TRUE (Enabled)
-        /// </summary>
-        public bool MqttRetainMessages
-        {
-            get
-            {
-                return easyModbus2Mqtt.RetainMessages;
-            }
-            set
-            {
-                easyModbus2Mqtt.RetainMessages = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or Sets the MQTT Broker Port (Standard is 1883)
-        /// </summary>
-        public int MqttBrokerPort
-        {
-            get
-            {
-                return easyModbus2Mqtt.MqttBrokerPort;
-            }
-            set
-            {
-                easyModbus2Mqtt.MqttBrokerPort = value;
-            }
-        }
-
-    }
 
     public class HoldingRegisters
     {
         public Int16[] localArray = new Int16[65535];
-        private Int16[] mqttHoldingRegistersOldValues = new Int16[65535];
         ModbusServer modbusServer;
      
-        public HoldingRegisters(EasyModbus.ModbusServer modbusServer)
+        public HoldingRegisters(EasyModbusCore.ModbusServer modbusServer)
         {
             this.modbusServer = modbusServer;
         }
@@ -2266,30 +2151,7 @@ namespace EasyModbus
             set
             {              
                 this.localArray[x] = value;
-                if (modbusServer.MqttBrokerAddress != null)
-                    if (localArray[x] != mqttHoldingRegistersOldValues[x])
-                    {                        
-                        
-                        ParameterizedThreadStart pts = new ParameterizedThreadStart(this.DoWork);
-                        Thread thread = new Thread(pts);
-                        thread.Start(x);
-                    }
-                mqttHoldingRegistersOldValues[x] = localArray[x];
-            }
-        }
-
-        private void DoWork(Object parameter)
-        {
-            lock (modbusServer.lockMQTT)
-            {
-                //ToSend contains the Array elements to publish
-                int toSend = (int) parameter;
-                try
-                {
-                    modbusServer.easyModbus2Mqtt.publish(modbusServer.MqttRootTopic + "/holdingregisters" + toSend, localArray[toSend].ToString(), modbusServer.MqttBrokerAddress);
-                }
-                catch (Exception) { }
-                Thread.Sleep(100);             
+                
             }
         }
     }
@@ -2297,10 +2159,9 @@ namespace EasyModbus
     public class InputRegisters
     {
         public Int16[] localArray = new Int16[65535];
-        private Int16[] mqttInputRegistersOldValues = new Int16[65535];
         ModbusServer modbusServer;
 
-        public InputRegisters(EasyModbus.ModbusServer modbusServer)
+        public InputRegisters(EasyModbusCore.ModbusServer modbusServer)
         {
             this.modbusServer = modbusServer;
         }
@@ -2311,30 +2172,7 @@ namespace EasyModbus
             set
             {
                 this.localArray[x] = value;
-                if (modbusServer.MqttBrokerAddress != null)
-                    if (localArray[x] != mqttInputRegistersOldValues[x])
-                    {
-                        mqttInputRegistersOldValues[x] = localArray[x];
-                        ParameterizedThreadStart pts = new ParameterizedThreadStart(this.DoWork);
-                        Thread thread = new Thread(pts);
-                        thread.Start(x);
-                    }
-            }
-        }
 
-        private void DoWork(Object parameter)
-        {
-            lock (modbusServer.lockMQTT)
-            {
-                //ToSend contains the Array elements to publish
-                int toSend = (int)parameter;
-                try
-                {
-                    modbusServer.easyModbus2Mqtt.publish(modbusServer.MqttRootTopic + "/inputregisters" + toSend, localArray[toSend].ToString(), modbusServer.MqttBrokerAddress);
-                }
-                catch (Exception) { }
-
-                Thread.Sleep(100);
             }
         }
     }
@@ -2342,10 +2180,9 @@ namespace EasyModbus
     public class Coils
     {
         public bool[] localArray = new bool[65535];
-        private bool[] mqttCoilsOldValues = new bool[65535];
         ModbusServer modbusServer;
 
-        public Coils(EasyModbus.ModbusServer modbusServer)
+        public Coils(EasyModbusCore.ModbusServer modbusServer)
         {
             this.modbusServer = modbusServer;
         }
@@ -2356,30 +2193,7 @@ namespace EasyModbus
             set
             {
                 this.localArray[x] = value;
-                if (modbusServer.MqttBrokerAddress != null)
-                    if (localArray[x] != mqttCoilsOldValues[x])
-                    {
-                        mqttCoilsOldValues[x] = localArray[x];
-                        ParameterizedThreadStart pts = new ParameterizedThreadStart(this.DoWork);
-                        Thread thread = new Thread(pts);
-                        thread.Start(x);
-                    }
-            }
-        }
-
-        private void DoWork(Object parameter)
-        {
-            lock (modbusServer.lockMQTT)
-            {
-                //ToSend contains the Array elements to publish
-                int toSend = (int)parameter;
-                try
-                {
-                    modbusServer.easyModbus2Mqtt.publish(modbusServer.MqttRootTopic + "/coils" + toSend, localArray[toSend].ToString(), modbusServer.MqttBrokerAddress);
-                }
-                catch (Exception) { }
-
-                Thread.Sleep(100);
+            
             }
         }
     }
@@ -2387,10 +2201,9 @@ namespace EasyModbus
     public class DiscreteInputs
     {
         public bool[] localArray = new bool[65535];
-        private bool[] mqttDiscreteInputsOldValues = new bool[65535];
         ModbusServer modbusServer;
 
-        public DiscreteInputs(EasyModbus.ModbusServer modbusServer)
+        public DiscreteInputs(EasyModbusCore.ModbusServer modbusServer)
         {
             this.modbusServer = modbusServer;
         }
@@ -2401,30 +2214,11 @@ namespace EasyModbus
             set
             {
                 this.localArray[x] = value;
-                if (modbusServer.MqttBrokerAddress != null)
-                    if (localArray[x] != mqttDiscreteInputsOldValues[x])
-                    {
-                        mqttDiscreteInputsOldValues[x] = localArray[x];
-                        ParameterizedThreadStart pts = new ParameterizedThreadStart(this.DoWork);
-                        Thread thread = new Thread(pts);
-                        thread.Start(x);
-                    }
+              
             }
         }
 
-        private void DoWork(Object parameter)
-        {
-            lock (modbusServer.lockMQTT)
-            {
-                //ToSend contains the Array elements to publish
-                int toSend = (int)parameter;
-                try
-                { 
-                    modbusServer.easyModbus2Mqtt.publish(modbusServer.MqttRootTopic + "/discreteinputs" + toSend, localArray[toSend].ToString(), modbusServer.MqttBrokerAddress);
-                }
-                catch (Exception) { }
-                Thread.Sleep(100);
-            }
+      
         }
     }
 }

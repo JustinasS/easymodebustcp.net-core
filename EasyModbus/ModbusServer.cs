@@ -138,7 +138,6 @@ namespace EasyModbus
         {
             lock (this)
             {
-                int i = 0;
                 bool objetExists = false;
                 foreach (Client clientLoop in tcpClientLastRequestList)
                 {
@@ -181,7 +180,7 @@ namespace EasyModbus
 
                     read = networkStream.EndRead(asyncResult);
                 }
-                catch (Exception ex)
+                catch
                 {
                     return;
                 }
@@ -266,7 +265,6 @@ namespace EasyModbus
     {
         private bool debug = false;
         Int32 port = 502;
-        ModbusProtocol receiveData;
         ModbusProtocol sendData =  new ModbusProtocol();
         Byte[] bytes = new Byte[2100];
         //public Int16[] _holdingRegisters = new Int16[65535];
@@ -289,7 +287,6 @@ namespace EasyModbus
         private IPEndPoint iPEndPoint;
         private TCPHandler tcpHandler;
         Thread listenerThread;
-        Thread clientConnectionThread;
         private ModbusProtocol[] modbusLogData = new ModbusProtocol[100];
         public bool FunctionCode1Disabled {get; set;}
         public bool FunctionCode2Disabled { get; set; }
@@ -355,8 +352,6 @@ namespace EasyModbus
             listenerThread.Join();
             try
             {
-
-                clientConnectionThread.Abort();
             }
             catch (Exception) { }
         }
@@ -431,7 +426,6 @@ namespace EasyModbus
         }
     
 		#region SerialHandler
-        private bool dataReceived = false;
         private byte[] readBuffer = new byte[2094];
         private DateTime lastReceive;
         private int nextSign = 0;
@@ -455,20 +449,15 @@ namespace EasyModbus
             nextSign = numbytes+ nextSign;
             if (ModbusClient.DetectValidModbusFrame(readBuffer, nextSign))
             {
-                
-                dataReceived = true;
                 nextSign= 0;
 
                     NetworkConnectionParameter networkConnectionParameter = new NetworkConnectionParameter();
                     networkConnectionParameter.bytes = readBuffer;
                     ParameterizedThreadStart pts = new ParameterizedThreadStart(this.ProcessReceivedData);
                     Thread processDataThread = new Thread(pts);
-                    processDataThread.Start(networkConnectionParameter);
-                    dataReceived = false;
-                
+                    processDataThread.Start(networkConnectionParameter);                
             }
-            else
-                dataReceived = false;
+            
         }
 		#endregion
  
@@ -635,7 +624,7 @@ namespace EasyModbus
                         }
                     }
                 }
-                catch (Exception exc)
+                catch 
                 { }
                 this.CreateAnswer(receiveDataThread, sendDataThread, stream, portIn, ipAddressIn);
                 //this.sendAnswer();
