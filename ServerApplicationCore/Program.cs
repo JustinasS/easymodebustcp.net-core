@@ -15,15 +15,17 @@ namespace ServerApplicationCore
             EasyModbusCore.ModbusServer modbusServer = new EasyModbusCore.ModbusServer();
             modbusServer.Listen();
             modbusServer.HoldingRegistersChanged += new EasyModbusCore.ModbusServer.HoldingRegistersChangedHandler(holdingRegistersChanged);
-            Console.ReadKey();
+            Console.WriteLine("[Modbus Server][INFO] - press any key to exit application");
+            Console.WriteLine("[Modbus Server][INFO] - started");
 
+            Console.ReadKey();
+            Console.WriteLine("[Modbus Server][INFO] - terminated");
             modbusServer.StopListening();
         }
 
         public void holdingRegistersChanged(int startingAddress, int quantity)
         {
-            Console.WriteLine(startingAddress);
-            Console.WriteLine(quantity);
+            Console.WriteLine($"Adress: \t {startingAddress} \t Value: \t {quantity}");
         }
     }
 }
