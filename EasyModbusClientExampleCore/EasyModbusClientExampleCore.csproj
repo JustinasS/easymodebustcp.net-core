@@ -17,12 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\EasyModbus\ModbusClient.cs" Link="ModbusClient.cs" />
-    <Compile Include="..\EasyModbus\ModbusServer.cs" Link="ModbusServer.cs" />
-    <Compile Include="..\EasyModbus\StoreLogData.cs" Link="StoreLogData.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="System.IO.Ports" Version="4.7.0" />
   </ItemGroup>
 

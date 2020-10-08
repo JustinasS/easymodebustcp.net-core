@@ -15,7 +15,7 @@ namespace EasyModbusClientExample
 	/// </summary>
 	public partial class MainForm : Form
 	{
-		private EasyModbus.ModbusClient modbusClient;
+		private ModbusClient modbusClient;
 		public MainForm()
 		{
 			//
@@ -23,10 +23,10 @@ namespace EasyModbusClientExample
 			//
 			InitializeComponent();
             
-			modbusClient = new EasyModbus.ModbusClient();
-            modbusClient.ReceiveDataChanged += new EasyModbus.ModbusClient.ReceiveDataChangedHandler(UpdateReceiveData);
-            modbusClient.SendDataChanged += new EasyModbus.ModbusClient.SendDataChangedHandler(UpdateSendData);
-            modbusClient.ConnectedChanged += new EasyModbus.ModbusClient.ConnectedChangedHandler(UpdateConnectedChanged);
+			modbusClient = new ModbusClient();
+            modbusClient.ReceiveDataChanged += new ModbusClient.ReceiveDataChangedHandler(UpdateReceiveData);
+            modbusClient.SendDataChanged += new ModbusClient.SendDataChangedHandler(UpdateSendData);
+            modbusClient.ConnectedChanged += new ModbusClient.ConnectedChangedHandler(UpdateConnectedChanged);
             //          modbusClient.LogFileFilename = "logFiletxt.txt";
 
             //modbusClient.Baudrate = 9600;
